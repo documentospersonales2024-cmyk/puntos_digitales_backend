@@ -1,0 +1,52 @@
+name: Deploy Backend to Production
+
+on:
+  push:
+    branches: [ main ] # Cambia a 'master' si tu rama principal se llama así
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup SSH Key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Deploy to Server via SSH
+      env:
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+      run: |
+        # Añadir el servidor a los hosts conocidos para evitar errores de conexión
+        mkdir -p ~/.ssh
+        ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+
+        # Ejecutar los comandos de actualización en el servidor remoto
+        ssh $SERVER_USER@$SERVER_IP << 'EOF'
+          cd ~/puntos_digitales/puntos_digitales_backend
+          
+          echo "Actualizando código desde GitHub..."
+          git pull origin main
+          
+          echo "Activando entorno virtual..."
+          source ../venv/bin/activate
+          
+          echo "Instalando dependencias..."
+          pip install -r requirements.txt
+          
+          echo "Ejecutando migraciones de base de datos..."
+          python manage.py migrate
+          
+          echo "Recolectando archivos estáticos..."
+          python manage.py collectstatic --noinput
+          
+          echo "Reiniciando servicio Gunicorn..."
+          sudo systemctl restart gunicorn
+          
+          echo "¡Despliegue completado con éxito!"
+        EOF
