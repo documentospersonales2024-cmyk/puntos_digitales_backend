@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import BitacoraVisita, UsuarioSistema, Ciudadano, Inventario
 
 @admin.register(UsuarioSistema)
-class UsuarioSistemaAdmin(UserAdmin):
+class UsuariosAdmin(UserAdmin):
     list_display = ('username', 'email', 'nombre_completo', 'rol', 'is_staff', 'is_active')
     list_filter = ('rol', 'is_staff', 'is_active')
     search_fields = ('username', 'email', 'nombre_completo')
